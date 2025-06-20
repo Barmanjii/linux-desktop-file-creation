@@ -11,9 +11,9 @@ sanitize_filename() {
 update_desktop_database() {
   if command -v update-desktop-database &> /dev/null; then
     update-desktop-database "$DESKTOP_DIR"
-    echo "Desktop database updated."
+    echo "✅ Desktop database updated."
   else
-    echo "Command 'update-desktop-database' not found; you may need to update your desktop database manually."
+    echo "⚠️  'update-desktop-database' not found; you may need to update manually."
   fi
 }
 
@@ -26,8 +26,7 @@ require_selection_tool() {
 
   read -p "Would you like to install 'fzf' now? (y/N): " install_choice
   if [[ "$install_choice" =~ ^[Yy]$ ]]; then
-    echo "🔍 Attempting to detect your package manager..."
-
+    echo "🔍 Detecting your package manager..."
     if command -v apt &> /dev/null; then
       sudo apt update && sudo apt install -y fzf
     elif command -v pacman &> /dev/null; then
@@ -42,17 +41,16 @@ require_selection_tool() {
     fi
 
     if ! command -v fzf &> /dev/null; then
-      echo "❌ Failed to install fzf. Please try installing it manually."
+      echo "❌ 'fzf' installation failed. Please install it manually."
       exit 1
     else
       echo "✅ fzf installed successfully."
     fi
   else
-    echo "❌ Cannot continue without 'fzf'. Exiting."
+    echo "❌ Cannot proceed without 'fzf'. Exiting."
     exit 1
   fi
 }
-
 
 choose_desktop_file() {
   desktop_files=("$DESKTOP_DIR"/*.desktop)
@@ -79,6 +77,13 @@ create_desktop() {
 
   [ -z "$categories" ] && categories="Utility;"
 
+  read -p "Do you want to add supported MIME types? (y/N): " add_mime
+  mime_line=""
+  if [[ "$add_mime" =~ ^[Yy]$ ]]; then
+    read -p "Enter MIME types separated by semicolons (e.g., video/mp4;video/x-matroska;): " mime_types
+    mime_line="MimeType=$mime_types"
+  fi
+
   desktop_file_name="$(sanitize_filename "$app_name").desktop"
   desktop_file_path="$DESKTOP_DIR/$desktop_file_name"
 
@@ -90,6 +95,7 @@ Icon=$icon_name
 Type=Application
 Categories=$categories
 Terminal=false
+$mime_line
 EOL
 
   echo "✅ .desktop file created at: $desktop_file_path"
@@ -110,6 +116,7 @@ update_desktop() {
   current_exec=$(grep -Po '^Exec=\K.*' "$desktop_file_path")
   current_icon=$(grep -Po '^Icon=\K.*' "$desktop_file_path")
   current_categories=$(grep -Po '^Categories=\K.*' "$desktop_file_path")
+  current_mime=$(grep -Po '^MimeType=\K.*' "$desktop_file_path")
 
   echo "Press Enter to keep the current value in [brackets]."
 
@@ -117,6 +124,24 @@ update_desktop() {
   read -p "Executable Path [$current_exec]: " new_exec
   read -p "Icon [$current_icon]: " new_icon
   read -p "Categories [$current_categories]: " new_categories
+
+  mime_line=""
+  if [ -n "$current_mime" ]; then
+    read -p "MIME types [$current_mime] (leave empty to keep, '-' or 'none' to remove): " new_mime
+    if [[ "$new_mime" == "-" || "$new_mime" == "none" ]]; then
+      mime_line=""
+    elif [ -n "$new_mime" ]; then
+      mime_line="MimeType=$new_mime"
+    else
+      mime_line="MimeType=$current_mime"
+    fi
+  else
+    read -p "Do you want to add MIME types? (y/N): " want_mime
+    if [[ "$want_mime" =~ ^[Yy]$ ]]; then
+      read -p "Enter MIME types separated by semicolons: " new_mime
+      [ -n "$new_mime" ] && mime_line="MimeType=$new_mime"
+    fi
+  fi
 
   app_name="${new_name:-$current_name}"
   exec_path="${new_exec:-$current_exec}"
@@ -132,6 +157,7 @@ Icon=$icon_name
 Type=Application
 Categories=$categories
 Terminal=false
+$mime_line
 EOL
 
   echo "✅ Updated: $desktop_file_path"
