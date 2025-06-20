@@ -72,10 +72,10 @@ choose_desktop_file() {
 create_desktop() {
   echo "🆕 Creating a new .desktop file."
 
-  read -p "Enter Application Name (e.g., VLC Media Player): " app_name
-  read -p "Enter executable path (e.g., /home/username/.nix-profile/bin/vlc): " exec_path
-  read -p "Enter icon name or full path (e.g., vlc): " icon_name
-  read -p "Enter categories (e.g., AudioVideo;Player;Video;): " categories
+  read -p "Enter Application Name (e.g., Postman): " app_name
+  read -p "Enter executable path (e.g., /home/username/.nix-profile/bin/Postman): " exec_path
+  read -p "Enter icon name or full path (e.g., postman): " icon_name
+  read -p "Enter categories (e.g., Development;Utility;): " categories
 
   [ -z "$categories" ] && categories="Utility;"
 
