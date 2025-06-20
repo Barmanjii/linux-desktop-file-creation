@@ -18,14 +18,41 @@ update_desktop_database() {
 }
 
 require_selection_tool() {
-  if ! command -v fzf &> /dev/null; then
-    echo "⚠️  'fzf' not found — falling back to simple numbered menu."
-    echo "👉 You can install fzf for better arrow-key support:"
-    echo "    - Ubuntu: sudo apt install fzf"
-    echo "    - Arch: sudo pacman -S fzf"
-    echo "    - Nix: nix profile install nixpkgs#fzf"
+  if command -v fzf &> /dev/null; then
+    return 0
+  fi
+
+  echo "⚠️  'fzf' is not installed, which is required for interactive selection."
+
+  read -p "Would you like to install 'fzf' now? (y/N): " install_choice
+  if [[ "$install_choice" =~ ^[Yy]$ ]]; then
+    echo "🔍 Attempting to detect your package manager..."
+
+    if command -v apt &> /dev/null; then
+      sudo apt update && sudo apt install -y fzf
+    elif command -v pacman &> /dev/null; then
+      sudo pacman -Sy fzf
+    elif command -v nix &> /dev/null; then
+      nix profile install nixpkgs#fzf
+    elif command -v brew &> /dev/null; then
+      brew install fzf
+    else
+      echo "❌ Could not detect a supported package manager. Please install 'fzf' manually."
+      exit 1
+    fi
+
+    if ! command -v fzf &> /dev/null; then
+      echo "❌ Failed to install fzf. Please try installing it manually."
+      exit 1
+    else
+      echo "✅ fzf installed successfully."
+    fi
+  else
+    echo "❌ Cannot continue without 'fzf'. Exiting."
+    exit 1
   fi
 }
+
 
 choose_desktop_file() {
   desktop_files=("$DESKTOP_DIR"/*.desktop)
